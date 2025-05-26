@@ -39,7 +39,7 @@ export default React.memo<Props>(function ReactFamilyTree(props) {
         />
       ))} */}
       <ContinuousConnector connectors={[...data.connectors]}/>
-      {/* data.nodes.map(props.renderNode)*/}
+      {data.nodes.map(props.renderNode)}
     </View>
   );
 });

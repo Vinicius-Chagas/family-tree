@@ -23,12 +23,16 @@ export default React.memo<Props>(function Connectors({ connectors }) {
     const key = (x: number, y: number) => `${x},${y}`;
 
     // Mapas para encontrar conectores por seus pontos de início ou fim
-    const startsMap: Map<string, Connector> = new Map();
-    const endsMap: Map<string, Connector> = new Map();
+    const startsMap: Map<string, Connector[]> = new Map();
+    const endsMap: Map<string, Connector[]> = new Map();
 
     connectors.forEach((connector) => {
-        startsMap.set(key(connector[0], connector[1]), connector);
-        endsMap.set(key(connector[2], connector[3]), connector);
+        const startK = key(connector[0], connector[1]);
+        const endK = key(connector[2], connector[3]);
+        if (!startsMap.has(startK)) startsMap.set(startK, []);
+        if (!endsMap.has(endK)) endsMap.set(endK, []);
+        startsMap.get(startK)!.push(connector);
+        endsMap.get(endK)!.push(connector);
     });
 
     /**
@@ -72,14 +76,25 @@ export default React.memo<Props>(function Connectors({ connectors }) {
 
         // ===== PROCESSAR ARCO ANTES DA LINHA ATUAL (arcBeforePath) =====
         // Encontrar o conector que TERMINA no ponto inicial do conector atual
-        const previousConnector = endsMap.get(key(x1, y1));
+       
+        // Get all connectors that start at (x1, y1), but not the current one
+      
+        // Prioritize true predecessors (connector ends where current starts)
+        const truePreviousConnector = endsMap.get(key(x1, y1))?.filter(c => c !== currentConnector)?.[0];
+        // Fallback to sibling (connector starts where current starts)
+        const siblingAsPrevious = startsMap.get(key(x1, y1))?.filter(c => c !== currentConnector)?.[0];
 
-        if (previousConnector && previousConnector !== currentConnector) {
+        const previousConnector = truePreviousConnector ?? siblingAsPrevious;
+        // Flag to identify if the chosen previousConnector is a sibling (shares start point with current)
+        const previousConnectorIsSibling = !truePreviousConnector && (previousConnector === siblingAsPrevious);
+
+         if (previousConnector) {
             const [prev_x1, prev_y1, prev_x2, prev_y2] = previousConnector; // Coords do conector anterior
             // prev_x2 é x1, prev_y2 é y1
 
             // CASO 1: Conector ANTERIOR é HORIZONTAL, conector ATUAL é VERTICAL
             if (prev_y1 === prev_y2 && x1 === x2) {
+
                 const prevGoesRight = prev_x2 > prev_x1; // Anterior foi para a direita?
                 const currGoesDown = y2 > y1;    // Atual vai para baixo?
 
@@ -91,11 +106,15 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                 const arcEndX = x1 * X;
                 const arcEndY = (y1 * X) + (currGoesDown ? pad : -pad);
                 
+                if (previousConnectorIsSibling) {
+                     arcBeforePath = null; 
+                } else {
                 arcBeforePath = quarterBezier(arcStartX, arcStartY, arcEndX, arcEndY, true);
-
+                }
                 // Atualizar o ponto inicial da linha atual para o final do arco
                 currentLineStartX = arcEndX;
                 currentLineStartY = arcEndY;
+                
             }
             // CASO 2: Conector ANTERIOR é VERTICAL, conector ATUAL é HORIZONTAL
             else if (prev_x1 === prev_x2 && y1 === y2) {
@@ -118,10 +137,15 @@ export default React.memo<Props>(function Connectors({ connectors }) {
         }
 
         // ===== PROCESSAR ARCO DEPOIS DA LINHA ATUAL (arcAfterPath) =====
-        // Encontrar o conector que COMEÇA no ponto final do conector atual
-        const nextConnector = startsMap.get(key(x2, y2));
+        const trueNextConnector = startsMap.get(key(x2, y2))?.filter(c => c !== currentConnector)?.[0];
+        // Sibling next: connector ENDS where current ENDS (converging T-junction or shared endpoint)
+        const siblingAsNext = endsMap.get(key(x2, y2))?.filter(c => c !== currentConnector)?.[0];
+        
+        const nextConnector = trueNextConnector ?? siblingAsNext;
+        // nextConnectorIsSibling is true if we chose siblingAsNext (i.e., trueNextConnector was null)
+        const nextConnectorIsSibling = !trueNextConnector && (nextConnector === siblingAsNext);
 
-        if (nextConnector && nextConnector !== currentConnector) {
+        if (nextConnector) {
             const [next_x1, next_y1, next_x2, next_y2] = nextConnector; // Coords do próximo conector
             // next_x1 é x2, next_y1 é y2
 
@@ -138,8 +162,14 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                 const arcEndX = next_x1 * X;
                 const arcEndY = (next_y1 * X) + (nextGoesDown ? pad : -pad);
                 
+                if (!nextConnectorIsSibling) {
+                    // Current H (bar), Next (sibling, ends at same point) V (stem).
+                    // Avoid arc from bar.end to stem.start.
+                    arcAfterPath = null;
+                    // Do NOT update currentLineEnd if no arc is drawn
+                } else {
                 arcAfterPath = quarterBezier(arcStartX, arcStartY, arcEndX, arcEndY, true);
-
+                }
                 // Atualizar o ponto final da linha atual para o início do arco
                 currentLineEndX = arcStartX;
                 currentLineEndY = arcStartY;
@@ -157,12 +187,22 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                 const arcEndX = (next_x1 * X) + (nextGoesRight ? pad : -pad);
                 const arcEndY = next_y1 * X;
                 
+                if (nextConnectorIsSibling) {
+                    // Current H (bar), Next (sibling, ends at same point) V (stem).
+                    // Avoid arc from bar.end to stem.start.
+                    arcAfterPath = null;
+                    // Do NOT update currentLineEnd if no arc is drawn
+                } else {
                 arcAfterPath = quarterBezier(arcStartX, arcStartY, arcEndX, arcEndY, false);
-
+                }
                 currentLineEndX = arcStartX;
                 currentLineEndY = arcStartY;
             }
         }
+        console.log(`Connector ${idx}:`, currentConnector)
+        console.log(`Predecessor connector:`, previousConnector);
+        console.log(`Successor connector:`, nextConnector);
+        console.log( '\n\n\n');
 
         // Caminho da linha principal (pode ter sido encurtada pelos arcos)
         const linePath = `M ${currentLineStartX},${currentLineStartY} L ${currentLineEndX},${currentLineEndY}`;
@@ -171,12 +211,9 @@ export default React.memo<Props>(function Connectors({ connectors }) {
             linePath,
             arcAfterPath,
             arcBeforePath,
-            color: COLORS[idx % COLORS.length],
+            color: 'black',
             idx,
-            currentLineStartY,
-            currentLineEndX,
-            currentLineEndY,
-            currentLineStartX
+
         };
     });
 
@@ -191,27 +228,24 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                 pointerEvents: 'none',
             }}
         >
-            {processedConnectors.map(({ linePath, arcAfterPath, arcBeforePath, color, idx, currentLineEndX, currentLineEndY, currentLineStartX, currentLineStartY }) => (
+            {processedConnectors.map(({ linePath, arcAfterPath, arcBeforePath, color, idx }) =>{
+                console.log(`Rendering connector ${idx}:`,'\n'+ linePath,'\n'+ arcAfterPath,'\n'+ arcBeforePath);
+                return (
                 <React.Fragment key={`conn-group-${idx}`}>
                     {/* Linha principal do conector */}
-                    {(linePath !== `M ${arcBeforePath ? currentLineStartX : (connectors[idx][0]*X)},${arcBeforePath ? currentLineStartY : (connectors[idx][1]*X)} L ${arcAfterPath ? currentLineEndX : (connectors[idx][2]*X)},${arcAfterPath ? currentLineEndY : (connectors[idx][3]*X)}` || (currentLineStartX !== currentLineEndX || currentLineStartY !== currentLineEndY)) && (
-                       // Renderiza a linha apenas se ela tiver comprimento (ou seja, não foi totalmente consumida por arcos)
-                       // A condição acima é complexa e pode ser simplificada para verificar se os pontos de início e fim da linha são diferentes.
-                       // Ex: if (currentLineStartX !== currentLineEndX || currentLineStartY !== currentLineEndY)
-                        <Path
-                            d={linePath}
-                            fill="none"
-                            stroke={color}
-                            strokeWidth={4}
-                            strokeLinecap="round"
-                        />
-                    )}
+                    <Path
+                        d={linePath}
+                        fill="none"
+                        stroke={'black'}
+                        strokeWidth={4}
+                        strokeLinecap="round"
+                    />
                     {/* Arco antes da linha (se existir) */}
                     {arcBeforePath && (
                         <Path
                             d={arcBeforePath}
                             fill="none"
-                            stroke={'black'} // Mantido como no original, pode ser alterado para `color`
+                            stroke={'#ffe119'} // Mantido como no original, pode ser alterado para `color`
                             strokeWidth={4}
                             strokeLinecap="round"
                         />
@@ -221,13 +255,13 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                         <Path
                             d={arcAfterPath}
                             fill="none"
-                            stroke={'black'} // Mantido como no original, pode ser alterado para `color`
+                            stroke={'#bcf60c'} // Mantido como no original, pode ser alterado para `color`
                             strokeWidth={4}
                             strokeLinecap="round"
                         />
                     )}
                 </React.Fragment>
-            ))}
+            )})}
             
             {/* Renderizar números dos conectores */}
             {connectors.map((connector, idx) => {
@@ -244,7 +278,7 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                         x={midX}
                         y={midY - 5} 
                         fontSize="12"
-                        fill={'black'}
+                        fill={'red'}
                         textAnchor="middle"
                     >
                         {idx}
