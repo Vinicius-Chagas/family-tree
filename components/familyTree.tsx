@@ -1,9 +1,10 @@
 import { X } from '@/constants/consts';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import calcTree from 'relatives-tree';
 import { ExtNode, Node } from 'relatives-tree/lib/types';
 import ContinuousConnector from './continuousConnector';
+import { ZoomableScrollView } from './zoomableScrollView';
 
 interface Props {
   nodes: ReadonlyArray<Node>;
@@ -20,26 +21,16 @@ export default React.memo<Props>(function ReactFamilyTree(props) {
     rootId: props.rootId,
     placeholders: props.placeholders,
   });
-
+  const width = data.canvas.width * X;
+  const height = data.canvas.height * X;
+  console.log({width, height})
+  const memoizedConnectors = useMemo(() => [...data.connectors], [data.connectors]);
   return (
-    <View
-      className={props.className}
-      style={{
-        position: 'relative',
-        width: data.canvas.width * X,
-        height: data.canvas.height * X,
-        marginTop: 200
-      }}
-    >
-      {/* {data.connectors.map((connector, idx) => (
-        <Connector
-          key={idx}
-          connector={connector}
-          index={idx} // Optional prop to indicate if this is the first connector
-        />
-      ))} */}
-      <ContinuousConnector connectors={[...data.connectors]}/>
-      {data.nodes.map(props.renderNode)}
-    </View>
+    <ZoomableScrollView contentHeight={height} contentWidth={width}>
+      <View style={{ width , height, position: 'relative' }}>
+        <ContinuousConnector connectors={memoizedConnectors}/>
+        {data.nodes.map(props.renderNode)}
+      </View>
+    </ZoomableScrollView>
   );
 });

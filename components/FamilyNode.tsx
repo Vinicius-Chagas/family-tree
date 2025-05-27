@@ -11,15 +11,16 @@ interface FamilyNodeProps {
 
 const FamilyNode: React.FC<FamilyNodeProps> = ({ node, style, isRoot }) => {
   const color = node.gender === 'male' ? '#eee' : '#fff';
+  const scalledPadding = NODE_PADDING * 2.5;
   return (
     <View
       style={[
         styles.nodeContainer,
         {
-          left: node.left * X + NODE_PADDING,
-          top: node.top * X + NODE_PADDING,
-          width: SIZE * X - NODE_PADDING * 2,
-          height: SIZE * X - NODE_PADDING * 2,
+          left: node.left * X + scalledPadding,
+          top: node.top * X + scalledPadding,
+          width: SIZE * X - scalledPadding * 2,
+          height: SIZE * X - scalledPadding * 2,
           backgroundColor: color,
           borderWidth: isRoot ? 2 : 1, // Check if node.isRoot is correctly populated by relatives-tree
         },
