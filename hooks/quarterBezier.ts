@@ -14,18 +14,25 @@ type QuarterBezierProps = {
  * @param arcEndX - Coordenada X do ponto final da curva
  * @param arcEndY - Coordenada Y do ponto final da curva
  * @param horizontalFirst - true: curva de H para V; false: curva de V para H
+ * @param curveIntensity - Intensidade da curva (padrão é 0.5)
  * @returns String do caminho SVG para a curva Bézier
  */
 function quarterBezier(
     props:QuarterBezierProps   
 ) {
-    const {arcStartX, arcStartY, arcEndX, arcEndY, horizontalFirst, curveIntensity = 20} = props;
+    const {arcStartX, arcStartY, arcEndX, arcEndY, horizontalFirst, curveIntensity = 0.5} = props;
+    // Calcular a distância entre os pontos de início e fim
+    const dx = arcEndX - arcStartX;
+    const dy = arcEndY - arcStartY;
+
+    // Usar a menor distância dos exitos para um quarto de curva
+    const baseDistance = horizontalFirst ? Math.abs(dx) : Math.abs(dy);
+    const intensity = baseDistance * curveIntensity;
+
     if (horizontalFirst) {
-        // Curva H -> V: Ponto de controle 1 na horizontal, Ponto de controle 2 na vertical
-        return `M ${arcStartX},${arcStartY} C ${arcStartX + Math.sign(arcEndX - arcStartX) * curveIntensity},${arcStartY} ${arcEndX},${arcEndY - Math.sign(arcEndY - arcStartY) * curveIntensity} ${arcEndX},${arcEndY}`;
+        return `M ${arcStartX},${arcStartY} C ${arcStartX + Math.sign(dx) * intensity},${arcStartY} ${arcEndX},${arcEndY - Math.sign(dy) * intensity} ${arcEndX},${arcEndY}`;
     } else {
-        // Curva V -> H: Ponto de controle 1 na vertical, Ponto de controle 2 na horizontal
-        return `M ${arcStartX},${arcStartY} C ${arcStartX},${arcStartY + Math.sign(arcEndY - arcStartY) * curveIntensity} ${arcEndX - Math.sign(arcEndX - arcStartX) * curveIntensity},${arcEndY} ${arcEndX},${arcEndY}`;
+        return `M ${arcStartX},${arcStartY} C ${arcStartX},${arcStartY + Math.sign(dy) * intensity} ${arcEndX - Math.sign(dx) * intensity},${arcEndY} ${arcEndX},${arcEndY}`;
     }
 }
 

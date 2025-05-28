@@ -1,6 +1,5 @@
 import { X } from '@/constants/consts';
 import React, { useMemo } from 'react';
-import { View } from 'react-native';
 import calcTree from 'relatives-tree';
 import { ExtNode, Node } from 'relatives-tree/lib/types';
 import ContinuousConnector from './continuousConnector';
@@ -23,14 +22,11 @@ export default React.memo<Props>(function ReactFamilyTree(props) {
   });
   const width = data.canvas.width * X;
   const height = data.canvas.height * X;
-  console.log({width, height})
   const memoizedConnectors = useMemo(() => [...data.connectors], [data.connectors]);
   return (
-    <ZoomableScrollView contentHeight={height} contentWidth={width}>
-      <View style={{ width , height, position: 'relative', borderColor: 'black', borderWidth: 1 }}>
-        <ContinuousConnector connectors={memoizedConnectors}/>
-        {data.nodes.map(props.renderNode)}
-      </View>
+    <ZoomableScrollView contentHeight={height} contentWidth={width} wrapperStyle={{ width , height, position: 'relative'}}>
+      <ContinuousConnector connectors={memoizedConnectors}/>
+      {data.nodes.map(props.renderNode)}
     </ZoomableScrollView>
   );
 });

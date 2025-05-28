@@ -11,30 +11,23 @@ import Animated, {
   withSpring
 } from 'react-native-reanimated';
 
-const MIN_SCALE = 1;
-const MAX_SCALE = 2.5;
-
-
-
 const ZoomableScrollView = ({
   children,
-  minScale = MIN_SCALE,
-  maxScale = MAX_SCALE,
+  minScale = 1,
+  maxScale = 2.5,
   contentWidth,
   contentHeight,
-  style = {},
-  scrollContainerStyle = {},
-  verticalScrollContainerStyle = {},
+  containerStyle,
+  wrapperStyle,
 }: {children: ReactNode, contentWidth: number,
-  contentHeight: number, minScale?: number, maxScale?: number, style?: ViewStyle, scrollContainerStyle?: ViewStyle, verticalScrollContainerStyle?: ViewStyle}) => {
-      const [{viewportWidth, viewportHeight}, setParentSize] = useState({ viewportWidth: 0, viewportHeight: 0 });
+  contentHeight: number, minScale?: number, maxScale?: number, containerStyle?: ViewStyle, wrapperStyle?: ViewStyle}) => {
 
-  // Shared values for scale and translation
+  const [{viewportWidth, viewportHeight}, setParentSize] = useState({ viewportWidth: 0, viewportHeight: 0 });
+
   const scale = useSharedValue(minScale);
   const translationX = useSharedValue(0);
   const translationY = useSharedValue(0);
 
-  // Store the starting scale and translation for calculations during gestures
   const savedScale = useSharedValue(minScale);
   const savedTranslationX = useSharedValue(0);
   const savedTranslationY = useSharedValue(0);
@@ -67,7 +60,6 @@ const ZoomableScrollView = ({
       translationY.value = savedTranslationY.value + event.translationY;
     })
     .onEnd(() => {
-      // Apply boundaries after pan ends
       applyBoundaryConstraints(scale, contentWidth, contentHeight, viewportWidth, viewportHeight, translationX, translationY);
     });
 
@@ -83,21 +75,16 @@ const ZoomableScrollView = ({
 
   return (
     <View
-      style={[styles.container, style]}
+      style={[styles.container]}
       onLayout={event => {
         const { width, height } = event.nativeEvent.layout;
         setParentSize({ viewportWidth:width, viewportHeight:height });
       }}
     >
-    // Outermost container, applying styles passed via props and default container styles
     <GestureDetector gesture={composedGesture}>
-      {/* Outermost container, applying styles passed via props and default container styles. This is the viewport. */}
-      <View style={[styles.container, style]}>
-        {/* This Animated.View is the "canvas" that is transformed (scaled and panned).
-            Its size is determined by its children. */}
+      <View style={[styles.container, containerStyle]}>
         <Animated.View style={[styles.content, animatedStyle]}>
-
-            <View style={styles.contentWrapper}>
+            <View style={wrapperStyle ?? styles.contentWrapper}>
             {children}
             </View>
         </Animated.View>
@@ -107,20 +94,12 @@ const ZoomableScrollView = ({
   );
 };
 
-
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     overflow: 'hidden',
   },
   content: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  verticalScrollContainer: {
     flex: 1,
   },
   contentWrapper: {
