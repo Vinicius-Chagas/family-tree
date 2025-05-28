@@ -27,7 +27,7 @@ export default React.memo<Props>(function ReactFamilyTree(props) {
   const memoizedConnectors = useMemo(() => [...data.connectors], [data.connectors]);
   return (
     <ZoomableScrollView contentHeight={height} contentWidth={width}>
-      <View style={{ width , height, position: 'relative' }}>
+      <View style={{ width , height, position: 'relative', borderColor: 'black', borderWidth: 1 }}>
         <ContinuousConnector connectors={memoizedConnectors}/>
         {data.nodes.map(props.renderNode)}
       </View>

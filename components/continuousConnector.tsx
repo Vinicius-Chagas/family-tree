@@ -21,8 +21,6 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                 position: 'absolute',
                 left: 0,
                 top: 0,
-                width: '100%',
-                height: '100%',
                 pointerEvents: 'none',
             }}
         >
@@ -41,7 +39,7 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                         <Path
                             d={arcBeforePath}
                             fill="none"
-                            stroke={'black'} // Mantido como no original, pode ser alterado para `color`
+                            stroke={'black'}
                             strokeWidth={4}
                             strokeLinecap="round"
                         />
@@ -51,7 +49,7 @@ export default React.memo<Props>(function Connectors({ connectors }) {
                         <Path
                             d={arcAfterPath}
                             fill="none"
-                            stroke={'black'} // Mantido como no original, pode ser alterado para `color`
+                            stroke={'black'}
                             strokeWidth={4}
                             strokeLinecap="round"
                         />

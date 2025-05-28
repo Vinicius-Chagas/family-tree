@@ -22,9 +22,9 @@ const FamilyNode: React.FC<FamilyNodeProps> = ({ node, style, isRoot }) => {
           width: SIZE * X - scalledPadding * 2,
           height: SIZE * X - scalledPadding * 2,
           backgroundColor: color,
-          borderWidth: isRoot ? 2 : 1, // Check if node.isRoot is correctly populated by relatives-tree
+          borderWidth: isRoot ? 2 : 1,
         },
-        style, // Allows for additional or overriding styles from props
+        style,
       ]}
     >
       <Text style={styles.textStyle} numberOfLines={1} ellipsizeMode="tail">
